@@ -1,0 +1,8 @@
+vendor/
+node_modules/
+.DS_Store
+*.log
+public/uploads/*.pdf
+!public/uploads/.gitkeep
+.env
+.env.local
