@@ -1,3 +1,4 @@
+SET NAMES utf8mb4;
 USE studentwallet;
 
 INSERT INTO categorias (usuario_id, nombre, icono, color) VALUES

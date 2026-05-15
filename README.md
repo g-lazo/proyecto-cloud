@@ -46,6 +46,3 @@ Los archivos `.php` se montan vía bind-mount. Hot-reload, solo refresca navegad
 Cambios en `Dockerfile` o vhost requieren `docker compose up -d --build`.
 
 ## Fase 2 (AWS)
-
-Cuando esté listo, ver `infra/bootstrap.sh` y secciones 16-18 del plan en
-`/Users/lazo/.claude/plans/antes-de-nada-ve-scalable-cray.md`.

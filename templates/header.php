@@ -16,7 +16,7 @@ $pageTitle = $pageTitle ?? 'StudentWallet';
 <body class="bg-slate-50 text-slate-800 min-h-screen">
 <header class="bg-white border-b border-slate-200">
     <div class="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-4">
-        <a href="/index.php" class="font-bold text-lg text-indigo-600">💰 StudentWallet</a>
+        <a href="/index.php" class="font-bold text-lg text-indigo-600">StudentWallet</a>
         <?php if (!empty($_SESSION['user_id'])): ?>
         <nav class="flex flex-wrap gap-2 ml-auto text-sm">
             <a href="/index.php"     class="px-3 py-1.5 rounded hover:bg-slate-100">Dashboard</a>

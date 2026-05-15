@@ -1,6 +1,6 @@
 -- Datos de prueba para usuario demo. Se ejecuta como 04-demo-data.sql
 -- DESPUÉS de demo_user.sql, así que el usuario ya existe.
-
+SET NAMES utf8mb4;
 USE studentwallet;
 
 SET @uid := (SELECT id FROM usuarios WHERE username = 'demo');

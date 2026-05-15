@@ -114,7 +114,7 @@ require __DIR__ . '/../templates/header.php';
 <div class="grid md:grid-cols-2 gap-4">
     <!-- Metas -->
     <section class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">🎯 Metas de ahorro</h3>
+        <h3 class="font-bold mb-3">Metas de ahorro</h3>
         <?php if (!$metas): ?>
             <p class="text-sm text-slate-500">Sin metas activas.</p>
         <?php else: foreach ($metas as $m):
@@ -140,7 +140,7 @@ require __DIR__ . '/../templates/header.php';
 
     <!-- Presupuestos -->
     <section class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">📊 Presupuesto del mes</h3>
+        <h3 class="font-bold mb-3">Presupuesto del mes</h3>
         <?php if (!$presupuestos): ?>
             <p class="text-sm text-slate-500">Sin presupuestos definidos para este mes.</p>
         <?php else: foreach ($presupuestos as $p):
@@ -167,7 +167,7 @@ require __DIR__ . '/../templates/header.php';
 
     <!-- Próximos recurrentes -->
     <section class="md:col-span-2 bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">🔁 Próximos pagos recurrentes este mes</h3>
+        <h3 class="font-bold mb-3">Próximos pagos recurrentes este mes</h3>
         <?php if (!$recurrentes): ?>
             <p class="text-sm text-slate-500">No hay pagos recurrentes pendientes este mes.</p>
         <?php else: ?>
