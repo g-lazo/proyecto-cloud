@@ -36,27 +36,36 @@ $catStmt = $pdo->prepare('SELECT id, nombre FROM categorias WHERE usuario_id IS 
 $catStmt->execute([$uid]);
 $categorias = $catStmt->fetchAll();
 
-$pageTitle = 'Consultar gastos';
+$pageTitle = 'Gastos';
 require __DIR__ . '/../templates/header.php';
 ?>
-<div class="bg-white rounded-xl shadow border border-slate-200 p-6">
-    <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-        <h1 class="text-xl font-bold">Gastos de <?= e(nombre_mes($mes) . ' ' . $anio) ?></h1>
-        <span class="text-sm text-slate-500">Total: <strong><?= e(format_currency($total)) ?></strong> · <?= count($gastos) ?> registro(s)</span>
-    </div>
+<div class="py-12">
+    <header class="mb-8 flex items-end justify-between flex-wrap gap-4">
+        <div>
+            <h1 class="text-3xl font-bold tracking-tight">Gastos</h1>
+            <p class="text-sm text-slate-500 mt-1">
+                <?= e(nombre_mes($mes) . ' ' . $anio) ?> · <?= count($gastos) ?> registro<?= count($gastos) !== 1 ? 's' : '' ?>
+            </p>
+        </div>
+        <div class="text-right">
+            <div class="text-xs text-slate-500">Total del periodo</div>
+            <div class="hero-number text-3xl mt-1"><?= e(format_currency($total)) ?></div>
+        </div>
+    </header>
 
-    <form method="GET" class="flex flex-wrap gap-2 mb-4 text-sm">
-        <select name="mes" class="border border-slate-300 rounded px-2 py-1">
+    <!-- Filtros -->
+    <form method="GET" class="flex flex-wrap gap-2 mb-6 pb-6 border-b border-slate-100 text-sm">
+        <select name="mes" class="input-clean w-auto">
             <?php for ($m = 1; $m <= 12; $m++): ?>
                 <option value="<?= $m ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(nombre_mes($m)) ?></option>
             <?php endfor; ?>
         </select>
-        <select name="anio" class="border border-slate-300 rounded px-2 py-1">
+        <select name="anio" class="input-clean w-auto">
             <?php for ($a = 2024; $a <= (int)date('Y') + 1; $a++): ?>
                 <option value="<?= $a ?>" <?= $a === $anio ? 'selected' : '' ?>><?= $a ?></option>
             <?php endfor; ?>
         </select>
-        <select name="categoria" class="border border-slate-300 rounded px-2 py-1">
+        <select name="categoria" class="input-clean w-auto">
             <option value="">Todas las categorías</option>
             <?php foreach ($categorias as $c): ?>
                 <option value="<?= (int)$c['id'] ?>" <?= (int)$c['id'] === $cat ? 'selected' : '' ?>>
@@ -64,40 +73,56 @@ require __DIR__ . '/../templates/header.php';
                 </option>
             <?php endforeach; ?>
         </select>
-        <button class="bg-indigo-600 text-white px-3 py-1 rounded hover:bg-indigo-700">Filtrar</button>
+        <button class="btn-primary">Filtrar</button>
+        <a href="/alta.php" class="btn-secondary ml-auto">+ Nuevo gasto</a>
     </form>
 
     <?php if (!$gastos): ?>
-        <p class="text-slate-500">No hay gastos en este periodo. <a href="/alta.php" class="text-indigo-600 underline">Registra uno</a>.</p>
-    <?php else: ?>
-        <div class="overflow-x-auto">
-            <table class="w-full text-sm">
-                <thead class="bg-slate-100 text-left">
-                    <tr>
-                        <th class="px-3 py-2">Fecha</th>
-                        <th class="px-3 py-2">Categoría</th>
-                        <th class="px-3 py-2">Descripción</th>
-                        <th class="px-3 py-2">Método</th>
-                        <th class="px-3 py-2 text-right">Monto</th>
-                        <th class="px-3 py-2"></th>
-                    </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($gastos as $g): ?>
-                    <tr class="border-b border-slate-100">
-                        <td class="px-3 py-2"><?= e((string)$g['fecha']) ?></td>
-                        <td class="px-3 py-2"><?= e((string)$g['categoria']) ?></td>
-                        <td class="px-3 py-2"><?= e((string)($g['descripcion'] ?? '')) ?></td>
-                        <td class="px-3 py-2 text-slate-500"><?= e((string)$g['metodo_pago']) ?></td>
-                        <td class="px-3 py-2 text-right font-medium"><?= e(format_currency((float)$g['monto'])) ?></td>
-                        <td class="px-3 py-2 text-right">
-                            <a href="/editar.php?id=<?= (int)$g['id'] ?>" class="text-indigo-600 hover:underline">Editar</a>
-                        </td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
+        <div class="text-center py-16">
+            <p class="text-slate-400 mb-4">No hay gastos en este periodo.</p>
+            <a href="/alta.php" class="btn-primary">Registrar un gasto</a>
         </div>
+    <?php else: ?>
+        <ul class="divide-y divide-slate-100">
+            <?php foreach ($gastos as $g): ?>
+                <li class="py-4 flex items-center justify-between gap-4 group">
+                    <div class="flex items-center gap-4 min-w-0 flex-1">
+                        <div class="text-xs text-slate-400 tabular-nums w-20 shrink-0">
+                            <?= e((string)$g['fecha']) ?>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="font-medium truncate">
+                                <?= ($g['descripcion'] ?? '') !== ''
+                                    ? e((string)$g['descripcion'])
+                                    : '<span class="text-slate-400">(sin descripción)</span>' ?>
+                            </div>
+                            <div class="text-xs text-slate-400 mt-0.5 flex items-center gap-2">
+                                <span class="badge"><?= e((string)$g['categoria']) ?></span>
+                                <span><?= e((string)$g['metodo_pago']) ?></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 shrink-0">
+                        <span class="font-semibold tabular-nums"><?= e(format_currency((float)$g['monto'])) ?></span>
+                        <div class="flex items-center gap-1 opacity-60 group-hover:opacity-100 transition-opacity">
+                            <a href="/editar.php?id=<?= (int)$g['id'] ?>"
+                               class="text-xs px-2.5 py-1 rounded text-slate-500 hover:bg-slate-100 hover:text-slate-900">
+                                Editar
+                            </a>
+                            <form method="POST" action="/eliminar.php" class="inline"
+                                  onsubmit="return confirm('¿Eliminar este gasto de <?= e(format_currency((float)$g['monto'])) ?>?');">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="id" value="<?= (int)$g['id'] ?>">
+                                <button type="submit"
+                                        class="text-xs px-2.5 py-1 rounded text-rose-600 hover:bg-rose-50">
+                                    Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </li>
+            <?php endforeach; ?>
+        </ul>
     <?php endif; ?>
 </div>
 <?php require __DIR__ . '/../templates/footer.php'; ?>

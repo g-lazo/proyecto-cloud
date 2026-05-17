@@ -8,7 +8,7 @@ $uid  = (int)$_SESSION['user_id'];
 $mes  = (int)date('n');
 $anio = (int)date('Y');
 
-// ============ WIDGET 1: Balance del mes ============
+// Balance del mes
 $stmt = $pdo->prepare('
     SELECT
         (SELECT COALESCE(SUM(monto),0) FROM ingresos
@@ -22,7 +22,18 @@ $ingresos_mes = (float)$bal['total_ingresos'];
 $gastos_mes   = (float)$bal['total_gastos'];
 $balance      = $ingresos_mes - $gastos_mes;
 
-// ============ WIDGET 2: Metas de ahorro ============
+// Distribución para donut
+$stmt = $pdo->prepare('
+    SELECT c.nombre AS categoria, SUM(g.monto) AS total
+    FROM gastos g JOIN categorias c ON c.id = g.categoria_id
+    WHERE g.usuario_id = ? AND MONTH(g.fecha) = ? AND YEAR(g.fecha) = ?
+    GROUP BY c.id, c.nombre
+    ORDER BY total DESC
+');
+$stmt->execute([$uid, $mes, $anio]);
+$distribucion = $stmt->fetchAll();
+
+// Metas
 $stmt = $pdo->prepare('
     SELECT id, nombre, monto_objetivo, monto_actual, fecha_objetivo
     FROM metas_ahorro
@@ -33,12 +44,10 @@ $stmt = $pdo->prepare('
 $stmt->execute([$uid]);
 $metas = $stmt->fetchAll();
 
-// ============ WIDGET 3: Presupuestos por categoría (top 3 por uso) ============
+// Presupuestos
 $stmt = $pdo->prepare('
-    SELECT
-        c.nombre,
-        p.monto_limite,
-        COALESCE(SUM(g.monto), 0) AS consumido
+    SELECT c.nombre, p.monto_limite,
+           COALESCE(SUM(g.monto), 0) AS consumido
     FROM presupuestos p
     JOIN categorias c ON c.id = p.categoria_id
     LEFT JOIN gastos g
@@ -49,12 +58,11 @@ $stmt = $pdo->prepare('
     WHERE p.usuario_id = ? AND p.mes = ? AND p.anio = ?
     GROUP BY p.id, c.nombre, p.monto_limite
     ORDER BY (COALESCE(SUM(g.monto),0) / p.monto_limite) DESC
-    LIMIT 3
 ');
 $stmt->execute([$uid, $mes, $anio]);
 $presupuestos = $stmt->fetchAll();
 
-// ============ WIDGET 4: Próximos gastos recurrentes ============
+// Próximos recurrentes
 $diaHoy  = (int)date('j');
 $diasMes = (int)date('t');
 $primerDelMes = sprintf('%04d-%02d-01', $anio, $mes);
@@ -73,135 +81,173 @@ $stmt = $pdo->prepare('
 $stmt->execute([$uid, $primerDelMes, $primerDelMes, $diaHoy, $diasMes]);
 $recurrentes = $stmt->fetchAll();
 
-// ============ Datos para gráfica donut: gastos por categoría ============
-$stmt = $pdo->prepare('
-    SELECT c.nombre AS categoria, SUM(g.monto) AS total
-    FROM gastos g JOIN categorias c ON c.id = g.categoria_id
-    WHERE g.usuario_id = ? AND MONTH(g.fecha) = ? AND YEAR(g.fecha) = ?
-    GROUP BY c.id, c.nombre
-    ORDER BY total DESC
-');
-$stmt->execute([$uid, $mes, $anio]);
-$distribucion = $stmt->fetchAll();
-
-$pageTitle = 'Dashboard';
+$pageTitle = 'Inicio';
 require __DIR__ . '/../templates/header.php';
 ?>
 
-<!-- Balance grande -->
-<div class="grid md:grid-cols-3 gap-4 mb-4">
-    <div class="md:col-span-2 bg-white rounded-xl shadow border border-slate-200 p-6">
-        <p class="text-sm text-slate-500">Balance de <?= e(nombre_mes($mes) . ' ' . $anio) ?></p>
-        <p class="big-number <?= $balance >= 0 ? 'text-emerald-600' : 'text-rose-600' ?> mt-1">
-            <?= e(format_currency($balance)) ?>
-        </p>
-        <p class="text-xs text-slate-500 mt-2">
-            Ingresos: <strong class="text-emerald-700"><?= e(format_currency($ingresos_mes)) ?></strong>
-            · Gastos: <strong class="text-rose-700"><?= e(format_currency($gastos_mes)) ?></strong>
-        </p>
-    </div>
+<!-- HERO: balance cinematográfico -->
+<section class="py-16 md:py-24 text-center">
+    <p class="text-sm text-slate-500 mb-3">
+        <?= $balance >= 0 ? 'Este mes vas ahorrando' : 'Este mes has gastado de más' ?>
+    </p>
+    <h1 class="hero-number text-6xl md:text-8xl <?= $balance >= 0 ? 'text-slate-900' : 'text-rose-600' ?>">
+        <?= e(format_currency(abs($balance))) ?>
+    </h1>
+    <p class="mt-6 text-sm text-slate-500">
+        Ingresos
+        <span class="font-semibold text-slate-900"><?= e(format_currency($ingresos_mes)) ?></span>
+        <span class="mx-2 text-slate-300">·</span>
+        Gastos
+        <span class="font-semibold text-slate-900"><?= e(format_currency($gastos_mes)) ?></span>
+        <span class="mx-2 text-slate-300">·</span>
+        <?= e(nombre_mes($mes) . ' ' . $anio) ?>
+    </p>
+</section>
 
-    <div class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <p class="text-sm font-medium mb-2">Distribución</p>
-        <?php if ($distribucion): ?>
-            <canvas id="donutCategorias" height="180"></canvas>
-        <?php else: ?>
-            <p class="text-sm text-slate-500">Sin gastos este mes.</p>
-        <?php endif; ?>
-    </div>
-</div>
+<!-- SECCIÓN: Distribución -->
+<div class="section-divider"><span>Dónde va tu dinero</span></div>
 
-<div class="grid md:grid-cols-2 gap-4">
-    <!-- Metas -->
-    <section class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">Metas de ahorro</h3>
-        <?php if (!$metas): ?>
-            <p class="text-sm text-slate-500">Sin metas activas.</p>
-        <?php else: foreach ($metas as $m):
-            $objetivo = (float)$m['monto_objetivo'];
-            $actual   = (float)$m['monto_actual'];
-            $pct      = $objetivo > 0 ? min(100, ($actual / $objetivo) * 100) : 0;
-        ?>
-            <div class="mb-3">
-                <div class="flex justify-between text-sm">
-                    <strong><?= e((string)$m['nombre']) ?></strong>
-                    <span class="text-slate-500"><?= number_format($pct, 1) ?>%</span>
-                </div>
-                <div class="bar my-1"><div class="fill" style="width: <?= number_format($pct, 1) ?>%"></div></div>
-                <small class="text-slate-500">
-                    <?= e(format_currency($actual)) ?> / <?= e(format_currency($objetivo)) ?>
-                    <?php if ($m['fecha_objetivo']): ?>
-                        · meta: <?= e((string)$m['fecha_objetivo']) ?>
-                    <?php endif; ?>
-                </small>
-            </div>
-        <?php endforeach; endif; ?>
-    </section>
-
-    <!-- Presupuestos -->
-    <section class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">Presupuesto del mes</h3>
-        <?php if (!$presupuestos): ?>
-            <p class="text-sm text-slate-500">Sin presupuestos definidos para este mes.</p>
-        <?php else: foreach ($presupuestos as $p):
-            $limite    = (float)$p['monto_limite'];
-            $consumido = (float)$p['consumido'];
-            $pct       = $limite > 0 ? ($consumido / $limite) * 100 : 0;
-            $color     = $pct >= 100 ? 'bg-rose-500' : ($pct >= 80 ? 'bg-amber-500' : 'bg-emerald-500');
-            $txt       = $pct >= 100 ? 'text-rose-700' : ($pct >= 80 ? 'text-amber-700' : 'text-emerald-700');
-        ?>
-            <div class="mb-3">
-                <div class="flex justify-between text-sm">
-                    <strong><?= e((string)$p['nombre']) ?></strong>
-                    <span class="<?= $txt ?>"><?= number_format($pct, 1) ?>% consumido</span>
-                </div>
-                <div class="bar my-1">
-                    <div class="<?= $color ?> h-full" style="width: <?= number_format(min($pct, 100), 1) ?>%"></div>
-                </div>
-                <small class="text-slate-500">
-                    <?= e(format_currency($consumido)) ?> / <?= e(format_currency($limite)) ?>
-                </small>
-            </div>
-        <?php endforeach; endif; ?>
-    </section>
-
-    <!-- Próximos recurrentes -->
-    <section class="md:col-span-2 bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h3 class="font-bold mb-3">Próximos pagos recurrentes este mes</h3>
-        <?php if (!$recurrentes): ?>
-            <p class="text-sm text-slate-500">No hay pagos recurrentes pendientes este mes.</p>
-        <?php else: ?>
-            <ul class="divide-y divide-slate-100 text-sm">
-            <?php foreach ($recurrentes as $r): ?>
-                <li class="py-2 flex justify-between">
-                    <span>
-                        <span class="text-slate-500">Día <?= (int)$r['dia_del_mes'] ?></span>
-                        ·
-                        <strong><?= e((string)$r['descripcion']) ?></strong>
-                        <span class="text-slate-400">(<?= e((string)$r['categoria']) ?>)</span>
+<?php if ($distribucion): ?>
+    <div class="grid md:grid-cols-2 gap-8 items-center">
+        <div class="relative mx-auto" style="max-width: 320px;">
+            <canvas id="donutCategorias" height="280"></canvas>
+        </div>
+        <ul class="space-y-3">
+            <?php
+            $totalDist = array_sum(array_map(fn($d) => (float)$d['total'], $distribucion));
+            $colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#6b7280'];
+            foreach ($distribucion as $i => $d):
+                $pct = $totalDist > 0 ? ((float)$d['total'] / $totalDist) * 100 : 0;
+                $color = $colors[$i % count($colors)];
+            ?>
+                <li class="flex items-center justify-between text-sm">
+                    <span class="flex items-center gap-3">
+                        <span class="w-3 h-3 rounded-full" style="background: <?= e($color) ?>"></span>
+                        <?= e((string)$d['categoria']) ?>
                     </span>
-                    <span class="font-medium"><?= e(format_currency((float)$r['monto'])) ?></span>
+                    <span class="text-slate-500">
+                        <?= e(format_currency((float)$d['total'])) ?>
+                        <span class="text-slate-400 ml-2"><?= number_format($pct, 1) ?>%</span>
+                    </span>
                 </li>
             <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    </section>
-</div>
+        </ul>
+    </div>
+<?php else: ?>
+    <p class="text-center text-slate-400 py-8">Sin gastos este mes.
+        <a href="/alta.php" class="text-slate-900 underline ml-1">Registra el primero →</a>
+    </p>
+<?php endif; ?>
+
+<!-- SECCIÓN: Metas -->
+<div class="section-divider"><span>Tus metas</span></div>
+
+<?php if (!$metas): ?>
+    <p class="text-center text-slate-400 py-8">No tienes metas activas.</p>
+<?php else: ?>
+    <ul class="divide-y divide-slate-100">
+    <?php foreach ($metas as $m):
+        $objetivo = (float)$m['monto_objetivo'];
+        $actual   = (float)$m['monto_actual'];
+        $pct      = $objetivo > 0 ? min(100, ($actual / $objetivo) * 100) : 0;
+    ?>
+        <li class="py-5">
+            <div class="flex items-baseline justify-between mb-2">
+                <span class="font-medium"><?= e((string)$m['nombre']) ?></span>
+                <span class="text-sm text-slate-500">
+                    <span class="text-slate-900 font-semibold"><?= e(format_currency($actual)) ?></span>
+                    de <?= e(format_currency($objetivo)) ?>
+                </span>
+            </div>
+            <div class="bar"><div class="fill" style="width: <?= number_format($pct, 1) ?>%"></div></div>
+            <div class="flex justify-between text-xs text-slate-400 mt-1.5">
+                <span><?= number_format($pct, 1) ?>% completado</span>
+                <?php if ($m['fecha_objetivo']): ?>
+                    <span>Meta: <?= e((string)$m['fecha_objetivo']) ?></span>
+                <?php endif; ?>
+            </div>
+        </li>
+    <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+
+<!-- SECCIÓN: Presupuestos -->
+<div class="section-divider"><span>Tu presupuesto</span></div>
+
+<?php if (!$presupuestos): ?>
+    <p class="text-center text-slate-400 py-8">Sin presupuestos definidos este mes.</p>
+<?php else: ?>
+    <ul class="divide-y divide-slate-100">
+    <?php foreach ($presupuestos as $p):
+        $limite    = (float)$p['monto_limite'];
+        $consumido = (float)$p['consumido'];
+        $pct       = $limite > 0 ? ($consumido / $limite) * 100 : 0;
+        $barColor  = $pct >= 100 ? 'background: #ef4444' : ($pct >= 80 ? 'background: #f59e0b' : 'background: linear-gradient(90deg, #6366f1, #8b5cf6)');
+        $txtColor  = $pct >= 100 ? 'text-rose-600' : ($pct >= 80 ? 'text-amber-600' : 'text-slate-500');
+    ?>
+        <li class="py-5">
+            <div class="flex items-baseline justify-between mb-2">
+                <span class="font-medium"><?= e((string)$p['nombre']) ?></span>
+                <span class="text-sm <?= $txtColor ?>">
+                    <span class="font-semibold"><?= e(format_currency($consumido)) ?></span>
+                    de <?= e(format_currency($limite)) ?>
+                </span>
+            </div>
+            <div class="bar">
+                <div class="h-full transition-all" style="width: <?= number_format(min($pct, 100), 1) ?>%; <?= $barColor ?>"></div>
+            </div>
+            <div class="text-xs text-slate-400 mt-1.5">
+                <?= number_format($pct, 1) ?>% consumido
+                <?php if ($pct >= 100): ?> · <span class="text-rose-600">presupuesto excedido</span><?php endif; ?>
+            </div>
+        </li>
+    <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
+
+<!-- SECCIÓN: Próximos pagos -->
+<div class="section-divider"><span>Próximos pagos</span></div>
+
+<?php if (!$recurrentes): ?>
+    <p class="text-center text-slate-400 py-8">No hay pagos recurrentes pendientes este mes.</p>
+<?php else: ?>
+    <ul class="divide-y divide-slate-100">
+    <?php foreach ($recurrentes as $r): ?>
+        <li class="py-4 flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-sm font-semibold text-slate-600">
+                    <?= (int)$r['dia_del_mes'] ?>
+                </div>
+                <div>
+                    <div class="font-medium"><?= e((string)$r['descripcion']) ?></div>
+                    <div class="text-xs text-slate-400"><?= e((string)$r['categoria']) ?></div>
+                </div>
+            </div>
+            <span class="font-semibold tabular-nums"><?= e(format_currency((float)$r['monto'])) ?></span>
+        </li>
+    <?php endforeach; ?>
+    </ul>
+<?php endif; ?>
 
 <?php if ($distribucion): ?>
 <script>
-    const labels = <?= json_encode(array_column($distribucion, 'categoria'), JSON_THROW_ON_ERROR) ?>;
-    const data   = <?= json_encode(array_map(fn($d) => (float)$d['total'], $distribucion), JSON_THROW_ON_ERROR) ?>;
-    new Chart(document.getElementById('donutCategorias'), {
+    const ctx = document.getElementById('donutCategorias');
+    new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels,
+            labels: <?= json_encode(array_column($distribucion, 'categoria'), JSON_THROW_ON_ERROR) ?>,
             datasets: [{
-                data,
+                data: <?= json_encode(array_map(fn($d) => (float)$d['total'], $distribucion), JSON_THROW_ON_ERROR) ?>,
                 backgroundColor: ['#6366f1','#8b5cf6','#ec4899','#f59e0b','#10b981','#ef4444','#3b82f6','#6b7280'],
+                borderWidth: 0,
+                hoverOffset: 8,
             }],
         },
-        options: { plugins: { legend: { position: 'bottom', labels: { font: { size: 10 } } } } }
+        options: {
+            cutout: '70%',
+            plugins: { legend: { display: false } },
+            animation: { animateScale: true, animateRotate: true }
+        }
     });
 </script>
 <?php endif; ?>

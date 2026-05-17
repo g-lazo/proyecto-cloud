@@ -1,5 +1,5 @@
 </main>
-<footer class="text-center text-xs text-slate-500 py-6">
+<footer class="max-w-5xl mx-auto px-6 py-12 text-xs text-slate-400 text-center">
     StudentWallet · Proyecto final Cloud Computing 2026
 </footer>
 </body>

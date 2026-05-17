@@ -6,52 +6,12 @@ require __DIR__ . '/../config/auth_check.php';
 
 $uid = (int)$_SESSION['user_id'];
 
-// Modo selección: lista de gastos para escoger cuál editar
+// Sin id → redirige a consulta para que el usuario escoja desde la lista
 if (!isset($_GET['id']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
-    $stmt = $pdo->prepare('
-        SELECT g.id, g.monto, g.descripcion, g.fecha, c.nombre AS categoria
-        FROM gastos g
-        JOIN categorias c ON c.id = g.categoria_id
-        WHERE g.usuario_id = ?
-        ORDER BY g.fecha DESC, g.id DESC
-        LIMIT 50
-    ');
-    $stmt->execute([$uid]);
-    $gastos = $stmt->fetchAll();
-
-    $pageTitle = 'Editar gasto';
-    require __DIR__ . '/../templates/header.php';
-    ?>
-    <div class="bg-white rounded-xl shadow border border-slate-200 p-6">
-        <h1 class="text-xl font-bold mb-4">Selecciona un gasto para editar</h1>
-        <?php if (!$gastos): ?>
-            <p class="text-slate-500">No tienes gastos registrados.</p>
-        <?php else: ?>
-            <ul class="divide-y divide-slate-100">
-            <?php foreach ($gastos as $g): ?>
-                <li class="py-2 flex items-center justify-between">
-                    <div>
-                        <span class="text-slate-500 text-sm"><?= e((string)$g['fecha']) ?></span>
-                        ·
-                        <strong><?= e((string)$g['categoria']) ?></strong>
-                        ·
-                        <?= e((string)($g['descripcion'] ?? '')) ?>
-                    </div>
-                    <div class="flex items-center gap-3">
-                        <span class="font-medium"><?= e(format_currency((float)$g['monto'])) ?></span>
-                        <a href="/editar.php?id=<?= (int)$g['id'] ?>" class="text-indigo-600 hover:underline text-sm">Editar →</a>
-                    </div>
-                </li>
-            <?php endforeach; ?>
-            </ul>
-        <?php endif; ?>
-    </div>
-    <?php
-    require __DIR__ . '/../templates/footer.php';
+    header('Location: /consulta.php');
     exit;
 }
 
-// Modo edición: id puede venir por GET (cargar) o POST (guardar)
 $gastoId = (int)($_POST['id'] ?? $_GET['id'] ?? 0);
 if ($gastoId < 1) die_400('ID inválido');
 
@@ -98,23 +58,32 @@ $categorias = $cats->fetchAll();
 $pageTitle = 'Editar gasto';
 require __DIR__ . '/../templates/header.php';
 ?>
-<div class="max-w-xl mx-auto bg-white rounded-xl shadow border border-slate-200 p-6">
-    <h1 class="text-xl font-bold mb-4">Editar gasto #<?= (int)$gasto['id'] ?></h1>
+<div class="max-w-lg mx-auto py-12">
+    <header class="mb-8">
+        <a href="/consulta.php" class="text-sm text-slate-500 hover:text-slate-900 inline-flex items-center gap-1 mb-3">
+            ← Volver a Gastos
+        </a>
+        <h1 class="text-3xl font-bold tracking-tight">Editar gasto</h1>
+        <p class="text-sm text-slate-500 mt-1">Actualiza los datos y guarda los cambios.</p>
+    </header>
 
-    <form method="POST" class="space-y-4">
+    <form method="POST" class="space-y-5">
         <?= csrf_field() ?>
         <input type="hidden" name="id" value="<?= (int)$gasto['id'] ?>">
 
         <div>
-            <label class="block text-sm font-medium mb-1">Monto</label>
-            <input type="number" step="0.01" min="0.01" max="99999999.99" name="monto" required
-                   value="<?= e_attr((string)$gasto['monto']) ?>"
-                   class="w-full border border-slate-300 rounded px-3 py-2">
+            <label class="block text-sm font-medium mb-1.5 text-slate-700">Monto</label>
+            <div class="relative">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                <input type="number" step="0.01" min="0.01" max="99999999.99" name="monto" required
+                       value="<?= e_attr((string)$gasto['monto']) ?>"
+                       class="input-clean pl-7 hero-number text-lg">
+            </div>
         </div>
 
         <div>
-            <label class="block text-sm font-medium mb-1">Categoría</label>
-            <select name="categoria_id" required class="w-full border border-slate-300 rounded px-3 py-2">
+            <label class="block text-sm font-medium mb-1.5 text-slate-700">Categoría</label>
+            <select name="categoria_id" required class="input-clean">
                 <?php foreach ($categorias as $c): ?>
                     <option value="<?= (int)$c['id'] ?>" <?= (int)$c['id'] === (int)$gasto['categoria_id'] ? 'selected' : '' ?>>
                         <?= e($c['nombre']) ?>
@@ -124,22 +93,21 @@ require __DIR__ . '/../templates/header.php';
         </div>
 
         <div>
-            <label class="block text-sm font-medium mb-1">Descripción</label>
+            <label class="block text-sm font-medium mb-1.5 text-slate-700">Descripción</label>
             <input type="text" name="descripcion" maxlength="255"
                    value="<?= e_attr((string)($gasto['descripcion'] ?? '')) ?>"
-                   class="w-full border border-slate-300 rounded px-3 py-2">
+                   class="input-clean">
         </div>
 
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-4">
             <div>
-                <label class="block text-sm font-medium mb-1">Fecha</label>
+                <label class="block text-sm font-medium mb-1.5 text-slate-700">Fecha</label>
                 <input type="date" name="fecha" required value="<?= e_attr((string)$gasto['fecha']) ?>"
-                       min="2020-01-01" max="2100-12-31"
-                       class="w-full border border-slate-300 rounded px-3 py-2">
+                       min="2020-01-01" max="2100-12-31" class="input-clean">
             </div>
             <div>
-                <label class="block text-sm font-medium mb-1">Método</label>
-                <select name="metodo_pago" class="w-full border border-slate-300 rounded px-3 py-2">
+                <label class="block text-sm font-medium mb-1.5 text-slate-700">Método</label>
+                <select name="metodo_pago" class="input-clean">
                     <?php foreach (['efectivo', 'tarjeta', 'transferencia'] as $m): ?>
                         <option value="<?= e_attr($m) ?>" <?= $m === $gasto['metodo_pago'] ? 'selected' : '' ?>>
                             <?= e(ucfirst($m)) ?>
@@ -149,11 +117,9 @@ require __DIR__ . '/../templates/header.php';
             </div>
         </div>
 
-        <div class="flex gap-2">
-            <button type="submit" class="flex-1 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">
-                Guardar cambios
-            </button>
-            <a href="/consulta.php" class="px-4 py-2 border border-slate-300 rounded hover:bg-slate-50">Cancelar</a>
+        <div class="flex gap-3 pt-2">
+            <button type="submit" class="btn-primary flex-1">Guardar cambios</button>
+            <a href="/consulta.php" class="btn-secondary">Cancelar</a>
         </div>
     </form>
 </div>

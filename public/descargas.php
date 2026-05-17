@@ -9,20 +9,18 @@ $links  = [];
 $source = 'local';
 
 if ($bucket === '') {
-    // ---- FASE 1: lista PDFs en public/uploads/ ----
     $dir = __DIR__ . '/uploads';
     if (is_dir($dir)) {
         foreach (glob($dir . '/*.pdf') as $path) {
             $name = basename($path);
             $links[] = [
-                'key'   => $name,
-                'url'   => '/uploads/' . rawurlencode($name),
-                'size'  => filesize($path),
+                'key'  => $name,
+                'url'  => '/uploads/' . rawurlencode($name),
+                'size' => filesize($path),
             ];
         }
     }
 } else {
-    // ---- FASE 2: S3 + presigned URLs ----
     require __DIR__ . '/../vendor/autoload.php';
     $source = 's3';
     $region = getenv('AWS_REGION') ?: 'us-east-1';
@@ -48,33 +46,47 @@ if ($bucket === '') {
 $pageTitle = 'Descargas';
 require __DIR__ . '/../templates/header.php';
 ?>
-<div class="bg-white rounded-xl shadow border border-slate-200 p-6">
-    <h1 class="text-xl font-bold mb-1">Repositorio de ensayos</h1>
-    <p class="text-sm text-slate-500 mb-4">
-        Documentos del semestre.
-        <?php if ($source === 's3'): ?>
-            Servidos desde AWS S3 con URLs firmadas (válidas 15 min).
-        <?php else: ?>
-            <em>(Fase 1: servidos desde directorio local <code>public/uploads/</code>)</em>
-        <?php endif; ?>
-    </p>
+<div class="py-12">
+    <header class="mb-8">
+        <h1 class="text-3xl font-bold tracking-tight">Repositorio de ensayos</h1>
+        <p class="text-sm text-slate-500 mt-1">
+            Documentos del semestre.
+            <?php if ($source === 's3'): ?>
+                Servidos desde AWS S3 con URLs firmadas (válidas 15 min).
+            <?php else: ?>
+                <span class="text-slate-400">(modo local · fase 1)</span>
+            <?php endif; ?>
+        </p>
+    </header>
 
     <?php if (!$links): ?>
-        <p class="text-slate-500">No hay archivos disponibles.</p>
-        <?php if ($source === 'local'): ?>
-            <p class="text-xs text-slate-400 mt-2">
-                Coloca tus PDFs en <code>public/uploads/</code> y refresca esta página.
-            </p>
-        <?php endif; ?>
+        <div class="text-center py-16">
+            <p class="text-slate-400">No hay archivos disponibles.</p>
+            <?php if ($source === 'local'): ?>
+                <p class="text-xs text-slate-400 mt-3">
+                    Coloca tus PDFs en <code class="px-1.5 py-0.5 bg-slate-100 rounded">public/uploads/</code> y refresca.
+                </p>
+            <?php endif; ?>
+        </div>
     <?php else: ?>
         <ul class="divide-y divide-slate-100">
         <?php foreach ($links as $l):
             $kb = $l['size'] > 0 ? number_format($l['size'] / 1024, 1) . ' KB' : '';
         ?>
-            <li class="py-2 flex items-center justify-between">
-                <span>📄 <?= e((string)$l['key']) ?> <span class="text-slate-400 text-xs"><?= e($kb) ?></span></span>
+            <li class="py-4 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-4 min-w-0 flex-1">
+                    <div class="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-semibold shrink-0">
+                        PDF
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-medium truncate"><?= e((string)$l['key']) ?></div>
+                        <div class="text-xs text-slate-400 mt-0.5"><?= e($kb) ?></div>
+                    </div>
+                </div>
                 <a href="<?= e_attr((string)$l['url']) ?>" target="_blank" rel="noopener noreferrer"
-                   class="text-indigo-600 hover:underline text-sm">Descargar →</a>
+                   class="text-sm text-slate-500 hover:text-slate-900 shrink-0">
+                    Descargar →
+                </a>
             </li>
         <?php endforeach; ?>
         </ul>

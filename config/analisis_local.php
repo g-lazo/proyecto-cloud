@@ -58,7 +58,9 @@ function analizar_gastos(array $gastos, int $mes, int $anio): array
         }
     }
 
-    $diasMes = (int)cal_days_in_month(CAL_GREGORIAN, $mes, $anio);
+    // date('t') con timestamp del primer día del mes/año dados.
+    // Equivalente a cal_days_in_month pero sin requerir la extensión calendar.
+    $diasMes = (int)date('t', mktime(0, 0, 0, $mes, 1, $anio));
     $hoy     = new DateTimeImmutable('now');
     if ((int)$hoy->format('Y') === $anio && (int)$hoy->format('n') === $mes) {
         $diasTranscurridos = max((int)$hoy->format('j'), 1);

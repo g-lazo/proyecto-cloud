@@ -1,5 +1,139 @@
-/* Pequeños ajustes sobre Tailwind */
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-.bar { background: #e2e8f0; border-radius: 9999px; height: 8px; overflow: hidden; }
-.bar > .fill { background: linear-gradient(90deg, #6366f1, #8b5cf6); height: 100%; transition: width .3s; }
-.big-number { font-size: 2.25rem; font-weight: 700; line-height: 1; }
+/* Tipografía Inter en todo el sitio */
+html, body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-feature-settings: 'cv11', 'ss01';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* Hero number: numerales tabulares + tracking apretado */
+.hero-number {
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    font-weight: 800;
+}
+
+/* Section divider tipo Linear: línea horizontal con label centrado */
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 4rem 0 2rem;
+}
+.section-divider::before,
+.section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: rgb(226 232 240);
+}
+.section-divider > span {
+    color: rgb(100 116 139);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+/* Progress bar */
+.bar {
+    background: rgb(241 245 249);
+    border-radius: 9999px;
+    height: 6px;
+    overflow: hidden;
+}
+.bar > .fill {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    height: 100%;
+    transition: width .4s ease;
+}
+
+/* Card hover sutil */
+.card-link {
+    transition: all .15s ease;
+}
+.card-link:hover {
+    background: rgb(248 250 252);
+}
+
+/* Inputs base */
+.input-clean {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    border: 1px solid rgb(226 232 240);
+    border-radius: 0.5rem;
+    background: white;
+    transition: all .15s;
+    font-size: 0.9375rem;
+}
+.input-clean:focus {
+    outline: none;
+    border-color: rgb(99 102 241);
+    box-shadow: 0 0 0 3px rgb(99 102 241 / 0.1);
+}
+
+/* Botón primario */
+.btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    background: rgb(15 23 42);
+    color: white;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: all .15s;
+}
+.btn-primary:hover {
+    background: rgb(30 41 59);
+    transform: translateY(-1px);
+}
+
+/* Botón secundario */
+.btn-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.5rem;
+    border: 1px solid rgb(226 232 240);
+    color: rgb(71 85 105);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    transition: all .15s;
+    background: white;
+}
+.btn-secondary:hover {
+    background: rgb(248 250 252);
+    border-color: rgb(203 213 225);
+}
+
+/* Botón peligroso */
+.btn-danger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    background: rgb(254 226 226);
+    color: rgb(159 18 57);
+    font-weight: 500;
+    font-size: 0.875rem;
+    transition: all .15s;
+}
+.btn-danger:hover {
+    background: rgb(254 202 202);
+}
+
+/* Badge categoria */
+.badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.125rem 0.625rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    background: rgb(241 245 249);
+    color: rgb(71 85 105);
+}

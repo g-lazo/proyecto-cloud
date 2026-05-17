@@ -33,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
-        // Verificar siempre para evitar timing/enumeration
         $hash = $user['password_hash'] ?? '$2y$10$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
         $ok = password_verify($password, $hash);
 
@@ -55,33 +54,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $pageTitle = 'Iniciar sesión';
 require __DIR__ . '/../templates/header.php';
 ?>
-<div class="max-w-md mx-auto bg-white rounded-xl shadow border border-slate-200 p-6 mt-10">
-    <h1 class="text-xl font-bold mb-1">Bienvenido</h1>
-    <p class="text-sm text-slate-500 mb-4">Ingresa con tu cuenta para continuar.</p>
-
-    <?php if ($error): ?>
-        <div class="mb-3 p-3 border border-rose-200 bg-rose-50 text-rose-700 rounded">
-            <?= e($error) ?>
+<div class="min-h-[70vh] flex items-center justify-center py-12">
+    <div class="w-full max-w-sm">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold tracking-tight">Bienvenido</h1>
+            <p class="text-sm text-slate-500 mt-2">Ingresa para gestionar tus finanzas estudiantiles.</p>
         </div>
-    <?php endif; ?>
 
-    <form method="POST" class="space-y-3">
-        <?= csrf_field() ?>
-        <div>
-            <label class="block text-sm font-medium mb-1">Usuario</label>
-            <input type="text" name="username" required maxlength="50" autocomplete="username"
-                   class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-        </div>
-        <div>
-            <label class="block text-sm font-medium mb-1">Contraseña</label>
-            <input type="password" name="password" required maxlength="100" autocomplete="current-password"
-                   class="w-full border border-slate-300 rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400">
-        </div>
-        <button type="submit" class="w-full bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700">
-            Entrar
-        </button>
-    </form>
+        <?php if ($error): ?>
+            <div class="mb-4 px-4 py-2.5 border border-rose-100 bg-rose-50 text-rose-900 text-sm rounded-lg">
+                <?= e($error) ?>
+            </div>
+        <?php endif; ?>
 
-    <p class="text-xs text-slate-400 mt-4">Demo: <code>demo</code> / <code>Demo2026!</code></p>
+        <form method="POST" class="space-y-4">
+            <?= csrf_field() ?>
+            <div>
+                <label class="block text-sm font-medium mb-1.5 text-slate-700">Usuario</label>
+                <input type="text" name="username" required maxlength="50" autocomplete="username" class="input-clean">
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-1.5 text-slate-700">Contraseña</label>
+                <input type="password" name="password" required maxlength="100" autocomplete="current-password" class="input-clean">
+            </div>
+            <button type="submit" class="btn-primary w-full">Entrar</button>
+        </form>
+
+        <div class="mt-8 p-4 bg-slate-50 rounded-lg text-xs text-slate-500 text-center">
+            <div class="font-medium text-slate-700 mb-1">Cuenta demo</div>
+            <code class="text-slate-600">demo</code> · <code class="text-slate-600">Demo2026!</code>
+        </div>
+    </div>
 </div>
 <?php require __DIR__ . '/../templates/footer.php'; ?>
