@@ -13,9 +13,47 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 csrf_verify_or_die();
+
+$modo = $_POST['modo'] ?? 'single';
+
+if ($modo === 'bulk') {
+    // -------- Bulk: eliminar todos los gastos del mes/año (y categoría opcional) --------
+    $mes  = require_post_int('mes',  1, 12);
+    $anio = require_post_int('anio', 2020, 2100);
+    $cat  = filter_input(INPUT_POST, 'categoria', FILTER_VALIDATE_INT,
+                ['options' => ['min_range' => 1]]) ?: 0;
+
+    $where  = 'usuario_id = ? AND MONTH(fecha) = ? AND YEAR(fecha) = ?';
+    $params = [$uid, $mes, $anio];
+    if ($cat > 0) {
+        // Verifica que la categoría sea del sistema o del propio usuario
+        if (!categoria_pertenece_al_usuario($pdo, $cat, $uid)) {
+            die_400('Categoría inválida');
+        }
+        $where .= ' AND categoria_id = ?';
+        $params[] = $cat;
+    }
+
+    $del = $pdo->prepare("DELETE FROM gastos WHERE $where");
+    $del->execute($params);
+    $count = $del->rowCount();
+
+    if ($count > 0) {
+        $_SESSION['_flash']['success'][] = "Se eliminaron {$count} gasto(s) de " . nombre_mes($mes) . " {$anio}.";
+    } else {
+        $_SESSION['_flash']['error'][] = 'No había gastos para eliminar en ese periodo.';
+    }
+
+    // Mantener filtros activos al regresar
+    $back = "/consulta.php?mes={$mes}&anio={$anio}";
+    if ($cat > 0) $back .= "&categoria={$cat}";
+    header("Location: {$back}");
+    exit;
+}
+
+// -------- Single: borrar un gasto específico (modo default) --------
 $gastoId = require_post_int('id', 1);
 
-// DELETE con usuario_id obligatorio. Si no es suyo, rowCount=0, misma respuesta.
 $del = $pdo->prepare('DELETE FROM gastos WHERE id = ? AND usuario_id = ?');
 $del->execute([$gastoId, $uid]);
 

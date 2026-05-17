@@ -97,7 +97,7 @@ require __DIR__ . '/../templates/header.php';
 
         <div class="flex gap-3 pt-2">
             <button type="submit" class="btn-primary flex-1">Guardar gasto</button>
-            <a href="/index.php" class="btn-secondary">Cancelar</a>
+            <a href="/consulta.php" class="btn-secondary">Cancelar</a>
         </div>
     </form>
 </div>

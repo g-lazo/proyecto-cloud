@@ -53,36 +53,66 @@ require __DIR__ . '/../templates/header.php';
         </div>
     </header>
 
-    <!-- Filtros -->
-    <form method="GET" class="flex flex-wrap gap-2 mb-6 pb-6 border-b border-slate-100 text-sm">
-        <select name="mes" class="input-clean w-auto">
-            <?php for ($m = 1; $m <= 12; $m++): ?>
-                <option value="<?= $m ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(nombre_mes($m)) ?></option>
-            <?php endfor; ?>
-        </select>
-        <select name="anio" class="input-clean w-auto">
-            <?php for ($a = 2024; $a <= (int)date('Y') + 1; $a++): ?>
-                <option value="<?= $a ?>" <?= $a === $anio ? 'selected' : '' ?>><?= $a ?></option>
-            <?php endfor; ?>
-        </select>
-        <select name="categoria" class="input-clean w-auto">
-            <option value="">Todas las categorías</option>
-            <?php foreach ($categorias as $c): ?>
-                <option value="<?= (int)$c['id'] ?>" <?= (int)$c['id'] === $cat ? 'selected' : '' ?>>
-                    <?= e($c['nombre']) ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <button class="btn-primary">Filtrar</button>
+    <!-- Filtros + acciones (dos forms hermanos en un solo flex row) -->
+    <div class="flex flex-wrap gap-2 mb-6 pb-6 border-b border-slate-100 text-sm items-center">
+        <form method="GET" class="flex flex-wrap gap-2 items-center">
+            <select name="mes" class="input-clean w-auto">
+                <?php for ($m = 1; $m <= 12; $m++): ?>
+                    <option value="<?= $m ?>" <?= $m === $mes ? 'selected' : '' ?>><?= e(nombre_mes($m)) ?></option>
+                <?php endfor; ?>
+            </select>
+            <select name="anio" class="input-clean w-auto">
+                <?php for ($a = 2024; $a <= (int)date('Y') + 1; $a++): ?>
+                    <option value="<?= $a ?>" <?= $a === $anio ? 'selected' : '' ?>><?= $a ?></option>
+                <?php endfor; ?>
+            </select>
+            <select name="categoria" class="input-clean w-auto">
+                <option value="">Todas las categorías</option>
+                <?php foreach ($categorias as $c): ?>
+                    <option value="<?= (int)$c['id'] ?>" <?= (int)$c['id'] === $cat ? 'selected' : '' ?>>
+                        <?= e($c['nombre']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+            <button class="btn-primary">Filtrar</button>
+        </form>
+
         <a href="/alta.php" class="btn-secondary ml-auto">+ Nuevo gasto</a>
-    </form>
+    </div>
 
     <?php if (!$gastos): ?>
         <div class="text-center py-16">
             <p class="text-slate-400 mb-4">No hay gastos en este periodo.</p>
             <a href="/alta.php" class="btn-primary">Registrar un gasto</a>
         </div>
-    <?php else: ?>
+    <?php else:
+        $catNombre = '';
+        if ($cat > 0) {
+            foreach ($categorias as $c) {
+                if ((int)$c['id'] === $cat) { $catNombre = (string)$c['nombre']; break; }
+            }
+        }
+        $descripcionScope = $catNombre !== ''
+            ? "todos los gastos de {$catNombre} en " . nombre_mes($mes) . " {$anio}"
+            : "todos los gastos de " . nombre_mes($mes) . " {$anio}";
+        $confirmMsg = "¿Estás seguro de eliminar {$descripcionScope}? Esta acción no se puede deshacer.";
+    ?>
+        <div class="flex justify-end mb-2">
+            <form method="POST" action="/eliminar.php"
+                  onsubmit="return confirm(<?= e_attr(json_encode($confirmMsg, JSON_THROW_ON_ERROR)) ?>);">
+                <?= csrf_field() ?>
+                <input type="hidden" name="modo" value="bulk">
+                <input type="hidden" name="mes"  value="<?= (int)$mes ?>">
+                <input type="hidden" name="anio" value="<?= (int)$anio ?>">
+                <?php if ($cat > 0): ?>
+                    <input type="hidden" name="categoria" value="<?= (int)$cat ?>">
+                <?php endif; ?>
+                <button type="submit" class="text-xs text-rose-600 hover:text-rose-700 hover:underline">
+                    Eliminar todos
+                </button>
+            </form>
+        </div>
+
         <ul class="divide-y divide-slate-100">
             <?php foreach ($gastos as $g): ?>
                 <li class="py-4 flex items-center justify-between gap-4 group">

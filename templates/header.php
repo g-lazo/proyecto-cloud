@@ -4,17 +4,16 @@ $pageTitle = $pageTitle ?? 'StudentWallet';
 
 // Detecta página activa para resaltar nav
 $current = basename($_SERVER['SCRIPT_NAME'] ?? '');
-// editar.php y eliminar.php son acciones que viven dentro del flujo de consulta.php
-// (un solo lugar para listar, editar y eliminar gastos).
+// alta.php, editar.php y eliminar.php son acciones que viven dentro del flujo de consulta.php
+// (un solo lugar para listar, crear, editar y eliminar gastos).
 $navItems = [
     'index.php'     => 'Inicio',
-    'alta.php'      => 'Registrar',
     'consulta.php'  => 'Gastos',
     'descargas.php' => 'Descargas',
     'analisis.php'  => 'Análisis',
 ];
-// Resaltar "Gastos" cuando estés editando o eliminando
-if (in_array($current, ['editar.php', 'eliminar.php'], true)) {
+// Resaltar "Gastos" cuando estés en cualquiera de las páginas hijas
+if (in_array($current, ['alta.php', 'editar.php', 'eliminar.php'], true)) {
     $current = 'consulta.php';
 }
 ?>
