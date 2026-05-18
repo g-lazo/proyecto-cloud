@@ -32,12 +32,15 @@ if (in_array($current, ['alta.php', 'editar.php', 'eliminar.php'], true)) {
 </head>
 <body class="bg-white text-slate-900 min-h-screen antialiased">
 <header class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-    <div class="max-w-5xl mx-auto px-6 h-14 flex items-center gap-8">
+    <div class="max-w-5xl mx-auto px-6 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-6">
+        <!-- Logo a la izquierda -->
         <a href="/index.php" class="font-semibold tracking-tight text-slate-900">
             StudentWallet
         </a>
+
         <?php if (!empty($_SESSION['user_id'])): ?>
-            <nav class="flex items-center gap-1 text-sm">
+            <!-- Nav centrado -->
+            <nav class="flex items-center justify-center gap-1 text-sm">
                 <?php foreach ($navItems as $file => $label):
                     $active = $current === $file; ?>
                     <a href="/<?= e($file) ?>"
@@ -48,15 +51,27 @@ if (in_array($current, ['alta.php', 'editar.php', 'eliminar.php'], true)) {
                     </a>
                 <?php endforeach; ?>
             </nav>
-            <form method="POST" action="/logout.php" class="ml-auto">
-                <?= csrf_field() ?>
-                <button type="submit"
-                        class="text-sm text-slate-500 hover:text-slate-900 transition-colors">
-                    Salir<?= !empty($_SESSION['nombre'])
-                        ? ' <span class="text-slate-400">' . e((string)$_SESSION['nombre']) . '</span>'
-                        : '' ?>
-                </button>
-            </form>
+
+            <!-- Usuario + Salir a la derecha (visualmente separados) -->
+            <div class="flex items-center gap-3">
+                <?php if (!empty($_SESSION['nombre'])): ?>
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="w-7 h-7 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-xs font-semibold">
+                            <?= e(mb_strtoupper(mb_substr((string)$_SESSION['nombre'], 0, 1))) ?>
+                        </div>
+                        <span class="text-slate-600"><?= e((string)$_SESSION['nombre']) ?></span>
+                    </div>
+                <?php endif; ?>
+                <form method="POST" action="/logout.php" class="pl-3 border-l border-slate-200">
+                    <?= csrf_field() ?>
+                    <button type="submit"
+                            class="text-sm text-rose-600 hover:text-rose-700 hover:underline">
+                        Salir
+                    </button>
+                </form>
+            </div>
+        <?php else: ?>
+            <span></span><span></span>
         <?php endif; ?>
     </div>
 </header>

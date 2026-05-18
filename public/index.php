@@ -86,7 +86,7 @@ require __DIR__ . '/../templates/header.php';
 ?>
 
 <!-- HERO: balance cinematográfico -->
-<section class="py-16 md:py-24 text-center">
+<section class="py-16 md:py-20 text-center">
     <p class="text-sm text-slate-500 mb-3">
         <?= $balance >= 0 ? 'Este mes vas ahorrando' : 'Este mes has gastado de más' ?>
     </p>
@@ -94,14 +94,30 @@ require __DIR__ . '/../templates/header.php';
         <?= e(format_currency(abs($balance))) ?>
     </h1>
     <p class="mt-6 text-sm text-slate-500">
-        Ingresos
-        <span class="font-semibold text-slate-900"><?= e(format_currency($ingresos_mes)) ?></span>
+        <a href="/ingresos.php" class="hover:text-slate-900">
+            Ingresos
+            <span class="font-semibold text-emerald-700"><?= e(format_currency($ingresos_mes)) ?></span>
+        </a>
         <span class="mx-2 text-slate-300">·</span>
-        Gastos
-        <span class="font-semibold text-slate-900"><?= e(format_currency($gastos_mes)) ?></span>
+        <a href="/consulta.php" class="hover:text-slate-900">
+            Gastos
+            <span class="font-semibold text-rose-700"><?= e(format_currency($gastos_mes)) ?></span>
+        </a>
         <span class="mx-2 text-slate-300">·</span>
         <?= e(nombre_mes($mes) . ' ' . $anio) ?>
     </p>
+
+    <!-- Acciones rápidas -->
+    <div class="mt-8 flex items-center justify-center gap-3">
+        <a href="/ingresos.php"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-colors">
+            + Ingreso
+        </a>
+        <a href="/alta.php"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-900 text-white text-sm font-medium hover:bg-slate-800 transition-colors">
+            + Gasto
+        </a>
+    </div>
 </section>
 
 <!-- SECCIÓN: Distribución -->
@@ -140,7 +156,14 @@ require __DIR__ . '/../templates/header.php';
 <?php endif; ?>
 
 <!-- SECCIÓN: Metas -->
-<div class="section-divider"><span>Tus metas</span></div>
+<div class="section-divider">
+    <span>Tus metas</span>
+</div>
+<div class="flex justify-end -mt-4 mb-2">
+    <a href="/metas.php" class="text-xs text-indigo-600 hover:text-indigo-700 hover:underline">
+        Gestionar metas →
+    </a>
+</div>
 
 <?php if (!$metas): ?>
     <p class="text-center text-slate-400 py-8">No tienes metas activas.</p>
@@ -150,14 +173,33 @@ require __DIR__ . '/../templates/header.php';
         $objetivo = (float)$m['monto_objetivo'];
         $actual   = (float)$m['monto_actual'];
         $pct      = $objetivo > 0 ? min(100, ($actual / $objetivo) * 100) : 0;
+        $faltante = max(0.0, $objetivo - $actual);
     ?>
         <li class="py-5">
-            <div class="flex items-baseline justify-between mb-2">
+            <div class="flex items-baseline justify-between mb-2 flex-wrap gap-2">
                 <span class="font-medium"><?= e((string)$m['nombre']) ?></span>
-                <span class="text-sm text-slate-500">
-                    <span class="text-slate-900 font-semibold"><?= e(format_currency($actual)) ?></span>
-                    de <?= e(format_currency($objetivo)) ?>
-                </span>
+                <div class="flex items-center gap-3">
+                    <?php if ($faltante > 0): ?>
+                        <form method="POST" action="/metas.php"
+                              data-max="<?= e_attr((string)$faltante) ?>"
+                              data-meta="<?= e_attr((string)$m['nombre']) ?>"
+                              onsubmit="return promptMonto(this, 'abonar');">
+                            <?= csrf_field() ?>
+                            <input type="hidden" name="accion" value="abonar">
+                            <input type="hidden" name="id" value="<?= (int)$m['id'] ?>">
+                            <input type="hidden" name="volver_a" value="inicio">
+                            <input type="hidden" name="abono" value="">
+                            <button type="submit"
+                                    class="text-xs px-2.5 py-1 rounded bg-emerald-600 text-white hover:bg-emerald-700">
+                                + Abonar
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                    <span class="text-sm text-slate-500">
+                        <span class="text-slate-900 font-semibold"><?= e(format_currency($actual)) ?></span>
+                        de <?= e(format_currency($objetivo)) ?>
+                    </span>
+                </div>
             </div>
             <div class="bar"><div class="fill" style="width: <?= number_format($pct, 1) ?>%"></div></div>
             <div class="flex justify-between text-xs text-slate-400 mt-1.5">
@@ -166,6 +208,9 @@ require __DIR__ . '/../templates/header.php';
                     <span>Meta: <?= e((string)$m['fecha_objetivo']) ?></span>
                 <?php endif; ?>
             </div>
+            <?php if ($faltante <= 0): ?>
+                <div class="mt-2 text-xs text-emerald-600 font-medium">Meta completada</div>
+            <?php endif; ?>
         </li>
     <?php endforeach; ?>
     </ul>
@@ -173,6 +218,11 @@ require __DIR__ . '/../templates/header.php';
 
 <!-- SECCIÓN: Presupuestos -->
 <div class="section-divider"><span>Tu presupuesto</span></div>
+<div class="flex justify-end -mt-4 mb-2">
+    <a href="/presupuestos.php" class="text-xs text-indigo-600 hover:text-indigo-700 hover:underline">
+        Gestionar presupuestos →
+    </a>
+</div>
 
 <?php if (!$presupuestos): ?>
     <p class="text-center text-slate-400 py-8">Sin presupuestos definidos este mes.</p>
@@ -207,6 +257,11 @@ require __DIR__ . '/../templates/header.php';
 
 <!-- SECCIÓN: Próximos pagos -->
 <div class="section-divider"><span>Próximos pagos</span></div>
+<div class="flex justify-end -mt-4 mb-2">
+    <a href="/recurrentes.php" class="text-xs text-indigo-600 hover:text-indigo-700 hover:underline">
+        Gestionar pagos recurrentes →
+    </a>
+</div>
 
 <?php if (!$recurrentes): ?>
     <p class="text-center text-slate-400 py-8">No hay pagos recurrentes pendientes este mes.</p>
