@@ -89,18 +89,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'metas'             => $metas,
         'recurrentes'       => $recurrentes,
     ];
-
-    $lambdaFn = getenv('LAMBDA_FUNCTION_NAME') ?: '';
+    $lambdaFn = getenv('LAMBDA_FUNCTION_NAME') ?: 'MiFuncionAnalisisFinanciero';
 
     try {
         if ($lambdaFn === '') {
             require_once __DIR__ . '/../config/analisis_local.php';
             $resultado = analizar_gastos($payload, $mes, $anio);
         } else {
-            require __DIR__ . '/../vendor/autoload.php';
+            require '/var/www/html/vendor/autoload.php';
             $lambda = new Aws\Lambda\LambdaClient([
                 'version' => 'latest',
-                'region'  => getenv('AWS_REGION') ?: 'us-east-1',
+                'region'  => getenv('AWS_REGION') ?: 'us-east-2',
+                'credentials' => [
+                    'key'    => getenv('AWS_ACCESS_KEY_ID'),
+                    'secret' => getenv('AWS_SECRET_ACCESS_KEY'),
+                ],
             ]);
             $res = $lambda->invoke([
                 'FunctionName'   => $lambdaFn,
@@ -115,9 +118,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 : $body;
         }
     } catch (Throwable $e) {
+        echo "<div style='color:red; background:#ffcccc; pading:10px; border:1px solid red;'>Error detected: " . htmlspecialchars($e->getMessage()) . "</div>";
         error_log('Analisis: ' . $e->getMessage());
         $error = 'No fue posible procesar el análisis';
-    }
+  }
 }
 
 $pageTitle = 'Análisis';

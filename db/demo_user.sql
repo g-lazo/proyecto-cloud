@@ -6,4 +6,4 @@ SET NAMES utf8mb4;
 USE studentwallet;
 
 INSERT INTO usuarios (username, password_hash, nombre, email) VALUES
-('demo', '$2y$10$gsOkVLYce2o4tyotxUrHze1WOs/fzO..a5WC8q6qo7FTYr0rNpyE.', 'Usuario Demo', 'demo@local');
+('demo', '$2y$12$e/BxLVl6e2OcW6zjFgxJ5eO6BQA5fuBolZj52PiyXQVOQabr3iyFS', 'Usuario Demo', 'demo@local');

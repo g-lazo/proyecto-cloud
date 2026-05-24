@@ -1,28 +1,34 @@
+
 services:
   app:
     build: .
     ports:
-      - "8000:80"
+      - "80:80"
     volumes:
       - .:/var/www/html
+    restart: always
     environment:
-      DB_HOST: db
-      DB_NAME: studentwallet
-      DB_USER: sw_app
-      DB_PASS: localpass
-      # LAMBDA_FUNCTION_NAME y S3_BUCKET_ENSAYOS quedan SIN setear
-      # -> el codigo corre los mocks locales automaticamente
+      DB_HOST: ${DB_HOST}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      LAMBDA_FUNCTION_NAME: ${LAMBDA_FUNCTION_NAME}
+      S3_BUCKET_ENSAYOS: ${S3_BUCKET_ENSAYOS}
+      AWS_REGION: ${AWS_REGION}
+      AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY}
     depends_on:
       db:
         condition: service_healthy
 
   db:
     image: mysql:8
+    restart: always
     environment:
-      MYSQL_ROOT_PASSWORD: rootpass
-      MYSQL_DATABASE: studentwallet
-      MYSQL_USER: sw_app
-      MYSQL_PASSWORD: localpass
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASS}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql

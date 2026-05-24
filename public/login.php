@@ -21,8 +21,8 @@ $error = null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     csrf_verify_or_die();
-
     $ip = client_ip();
+
     if (login_bloqueado($pdo, $ip)) {
         $error = 'Demasiados intentos. Intenta en 15 minutos.';
     } else {
@@ -33,10 +33,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute([$username]);
         $user = $stmt->fetch();
 
-        $hash = $user['password_hash'] ?? '$2y$10$XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX';
-        $ok = password_verify($password, $hash);
-
-        if ($user && $ok) {
+        if ($user && password_verify($password, $user['password_hash'])) {
             log_intento_login($pdo, $ip, $username, true);
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$user['id'];
